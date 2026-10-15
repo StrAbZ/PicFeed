@@ -3,12 +3,17 @@ import Foundation
 /// Serves the recorded JSON in `Fixtures/` instead of hitting the Unsplash API.
 /// Pages past the recorded ones come back empty. The search query is ignored.
 nonisolated final class FixtureURLProtocol: URLProtocol {
-    override class func canInit(with request: URLRequest) -> Bool { true }
+    override static func canInit(with request: URLRequest) -> Bool { true }
 
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        guard let url = request.url else {
+        guard let url = request.url,
+              let response = HTTPURLResponse(url: url,
+                                             statusCode: 200,
+                                             httpVersion: nil,
+                                             headerFields: ["Content-Type": "application/json"])
+        else {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
@@ -22,10 +27,6 @@ nonisolated final class FixtureURLProtocol: URLProtocol {
             .flatMap { try? Data(contentsOf: $0) }
             ?? Data((isSearch ? #"{"total_pages":0,"results":[]}"# : "[]").utf8)
 
-        let response = HTTPURLResponse(
-            url: url, statusCode: 200, httpVersion: nil,
-            headerFields: ["Content-Type": "application/json"]
-        )!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: data)
         client?.urlProtocolDidFinishLoading(self)

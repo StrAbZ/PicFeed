@@ -1,0 +1,84 @@
+disabled_rules:
+  - file_length
+  - line_length
+  - function_body_length
+
+excluded: # paths to ignore during linting. Takes precedence over `included`.
+  - Carthage
+  - Pods
+
+opt_in_rules:
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - convenience_type
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - explicit_init
+  - fatal_error_message
+  - file_header
+  - file_name_no_space
+  - first_where
+  - flatmap_over_map_reduce
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - legacy_random
+  - legacy_multiple
+  - let_var_whitespace
+  - modifier_order
+  - multiline_arguments
+  - multiline_function_chains
+  - multiline_parameters
+  - operator_usage_whitespace
+  - overridden_super_call
+  - prefer_self_type_over_type_of_self
+  - prefer_self_in_static_references
+  - prefer_zero_over_explicit_init
+  - private_action
+  - prohibited_super_call
+  - redundant_type_annotation
+  - superfluous_else
+  - static_operator
+  - toggle_bool
+  - trailing_closure
+  - unneeded_parentheses_in_closure_argument
+  - unowned_variable_capture
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_opening_braces
+  - vertical_whitespace_closing_braces
+  - weak_delegate
+  - yoda_condition
+
+analyzer_rules:
+  - unused_import
+  - unused_declaration
+
+function_parameter_count: 6
+type_body_length:
+  - 300 # warning
+  - 1000 # error
+identifier_name:
+  excluded:
+    - id
+    - db
+cyclomatic_complexity:
+  ignores_case_statements: true
+multiline_arguments:
+  first_argument_location: any_line
+  only_enforce_after_first_closure_on_first_line: true
+
+custom_rules:
+  first_parameter_on_declaration_line:
+    name: "First Parameter On Declaration Line"
+    message: "The first parameter should start on the same line as the function or initializer declaration."
+    regex: '\b(?:func\s+[^\s(<]+|init[?!]?)\s*(?:<[^>\n]*>)?\(\s*\n'
+    match_kinds:
+      - keyword
+      - identifier
+    severity: warning

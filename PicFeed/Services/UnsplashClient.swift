@@ -54,7 +54,7 @@ nonisolated struct UnsplashClient: Sendable {
     private func pageQuery(_ page: Int) -> [URLQueryItem] {
         [
             URLQueryItem(name: "page", value: String(page)),
-            URLQueryItem(name: "per_page", value: String(perPage)),
+            URLQueryItem(name: "per_page", value: String(perPage))
         ]
     }
 
