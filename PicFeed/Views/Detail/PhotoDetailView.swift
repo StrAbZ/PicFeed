@@ -29,7 +29,7 @@ struct PhotoDetailView: View {
         content
             .overlay(alignment: .top) {
                 if isExpanded && !isUIHidden {
-                    closeControl
+                    CloseControl(action: dismiss)
                         .opacity(dragProgress)
                         .transition(.opacity)
                 }
@@ -43,7 +43,7 @@ struct PhotoDetailView: View {
                 .onTapGesture(perform: toggleUI)
                 .allowsHitTesting(isExpanded)
 
-            image
+            card
                 .matchedGeometryEffect(id: photo.id, in: namespace, isSource: isExpanded)
                 .shadow(color: .black.opacity(isExpanded ? 0.45 : 0), radius: 28, y: 14)
                 .scaleEffect(0.85 + 0.15 * dragProgress)
@@ -51,7 +51,7 @@ struct PhotoDetailView: View {
                 .onTapGesture { isExpanded ? toggleUI() : expand() }
                 .gesture(dismissGesture, isEnabled: isExpanded)
         }
-        .overlay(alignment: .bottom) { caption }
+        .overlay(alignment: .bottom) { captionBar }
         .statusBarHidden(isUIHidden)
         .sensoryFeedback(.impact(weight: .light), trigger: isExpanded)
         .onAppear(perform: expand)
@@ -66,47 +66,17 @@ struct PhotoDetailView: View {
         .ignoresSafeArea()
     }
 
-    private var image: some View {
+    private var card: some View {
         let isFullImageCached = loader.cachedImage(for: photo.urls.regular) != nil
 
-        return ZStack {
-            Color(hex: photo.color) ?? Color(.secondarySystemFill)
-            CachedImage(url: photo.urls.thumb)
-            CachedImage(url: photo.urls.regular)
-                .opacity(showsFullImage || isFullImageCached ? 1 : 0)
-        }
-        .aspectRatio(photo.aspectRatio, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        return PhotoCard(photo: photo,
+                         cornerRadius: cornerRadius,
+                         fullImageOpacity: showsFullImage || isFullImageCached ? 1 : 0,
+                         showsCaption: !isExpanded)
     }
 
     @ViewBuilder
-    private var closeControl: some View {
-        if #available(iOS 26, *) {
-            NavigationStack {
-                Color.clear
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button(role: .close, action: dismiss)
-                        }
-                    }
-                    .containerBackground(.clear, for: .navigation)
-            }
-            .frame(height: 120)
-        } else {
-            Button(action: dismiss) {
-                Image(systemName: "xmark")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 36, height: 36)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
-            .padding()
-        }
-    }
-
-    @ViewBuilder
-    private var caption: some View {
+    private var captionBar: some View {
         if let caption = photo.caption {
             Text(caption)
                 .font(.callout)
