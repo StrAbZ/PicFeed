@@ -36,7 +36,7 @@ nonisolated final class FixtureURLProtocol: URLProtocol {
 }
 
 extension URLSession {
-    static let fixtures: URLSession = {
+    nonisolated static let fixtures: URLSession = {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [FixtureURLProtocol.self]
         return URLSession(configuration: configuration)
