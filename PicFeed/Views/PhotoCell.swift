@@ -8,11 +8,7 @@ struct PhotoCell: View {
             placeholderColor
                 .aspectRatio(photo.aspectRatio, contentMode: .fit)
                 .overlay {
-                    AsyncImage(url: photo.urls.thumb) { image in
-                        image.resizable().scaledToFill()
-                    } placeholder: {
-                        Color.clear
-                    }
+                    CachedImage(url: photo.urls.thumb)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 12))
 
