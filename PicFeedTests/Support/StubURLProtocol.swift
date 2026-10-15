@@ -1,4 +1,5 @@
 import Testing
+import UIKit
 import Foundation
 
 /// Answers every request from `handler`. It holds global state, so the tests that use it
@@ -69,5 +70,16 @@ extension URLRequest {
                   .queryItems?.first(where: { $0.name == "page" })?.value
         else { return 1 }
         return Int(value) ?? 1
+    }
+}
+
+extension StubURLProtocol.Reply {
+    static func image() -> Self {
+        let size = CGSize(width: 8, height: 8)
+        let data = UIGraphicsImageRenderer(size: size).pngData { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+        return Self(body: data)
     }
 }

@@ -1,6 +1,6 @@
 import UIKit
 
-nonisolated enum ImageLoaderError: Error {
+nonisolated enum ImageLoaderError: Error, Equatable {
     case invalidResponse
     case invalidImageData
 }
