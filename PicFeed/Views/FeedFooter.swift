@@ -15,6 +15,8 @@ struct FeedFooter: View {
                 Button("Retry") { Task { await feed.loadMore() } }
             }
             .padding()
+        } else if feed.photos.isEmpty && !feed.hasMore {
+            ContentUnavailableView.search
         }
     }
 }

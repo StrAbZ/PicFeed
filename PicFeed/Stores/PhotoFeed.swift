@@ -1,7 +1,10 @@
+import Foundation
 import Observation
 
 @Observable
-final class PhotoFeed {
+final class PhotoFeed: Identifiable {
+    let id = UUID()
+
     private(set) var photos: [Photo] = []
     private(set) var isLoading = false
     private(set) var hasMore = true
@@ -34,9 +37,8 @@ final class PhotoFeed {
             lastLoadedPage += 1
             photos += page.photos.filter { loadedIDs.insert($0.id).inserted }
             hasMore = page.totalPages.map { lastLoadedPage < $0 } ?? !page.photos.isEmpty
-        } catch is CancellationError {
         } catch {
-            self.error = error
+            if !Task.isCancelled { self.error = error }
         }
     }
 

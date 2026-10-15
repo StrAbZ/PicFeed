@@ -1,31 +1,33 @@
 import SwiftUI
 
 struct FeedView: View {
-    @State private var feed: PhotoFeed
+    private let client: UnsplashClient
 
-    private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible())]
+    @State private var editorialFeed: PhotoFeed
+    @State private var searchFeed: PhotoFeed?
+    @State private var searchText = ""
 
     init(client: UnsplashClient) {
-        _feed = State(initialValue: PhotoFeed(client: client))
+        self.client = client
+        _editorialFeed = State(initialValue: PhotoFeed(client: client))
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 16) {
-                    ForEach(feed.photos) { photo in
-                        PhotoCell(photo: photo)
-                            .task { await feed.loadMoreIfNeeded(after: photo) }
-                    }
-                }
-                .padding(.horizontal, 12)
+        let feed = searchFeed ?? editorialFeed
 
-                FeedFooter(feed: feed)
-            }
-            .navigationTitle("PicFeed")
-            .task {
-                if feed.photos.isEmpty { await feed.loadMore() }
-            }
+        NavigationStack {
+            PhotoGrid(feed: feed)
+                .id(feed.id)
+                .navigationTitle(searchFeed == nil ? "PicFeed" : "Results")
+        }
+        .searchable(text: $searchText)
+        .onSubmit(of: .search) {
+            let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !query.isEmpty else { return }
+            searchFeed = PhotoFeed(client: client, query: query)
+        }
+        .onChange(of: searchText) {
+            if searchText.isEmpty { searchFeed = nil }
         }
     }
 }
