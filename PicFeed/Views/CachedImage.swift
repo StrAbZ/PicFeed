@@ -16,6 +16,7 @@ struct CachedImage: View {
                 Color.clear
             }
         }
+        .animation(.easeIn(duration: 0.2), value: loadedImage)
         .task(id: url) {
             loadedImage = try? await loader.image(for: url)
         }
