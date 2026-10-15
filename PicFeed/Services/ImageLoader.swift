@@ -12,7 +12,7 @@ final class ImageLoader {
     private let memoryCache = NSCache<NSURL, UIImage>()
     private var inFlight: [URL: Task<UIImage, Error>] = [:]
 
-    init(session: URLSession = .shared, memoryLimit: Int = 64 * 1024 * 1024) {
+    init(session: URLSession = .images, memoryLimit: Int = 64 * 1024 * 1024) {
         self.session = session
         memoryCache.totalCostLimit = memoryLimit
     }
@@ -55,4 +55,15 @@ private extension UIImage {
     var decodedByteCount: Int {
         cgImage.map { $0.bytesPerRow * $0.height } ?? 0
     }
+}
+
+extension URLSession {
+    nonisolated static let images: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.requestCachePolicy = .returnCacheDataElseLoad
+        configuration.urlCache = URLCache(memoryCapacity: 0,
+                                          diskCapacity: 200 * 1024 * 1024,
+                                          directory: .cachesDirectory.appending(path: "Images"))
+        return URLSession(configuration: configuration)
+    }()
 }
