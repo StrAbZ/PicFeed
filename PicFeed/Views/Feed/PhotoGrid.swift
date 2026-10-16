@@ -8,7 +8,10 @@ struct PhotoGrid: View {
     let onScroll: () -> Void
     let onSelect: (Photo) -> Void
 
+    @Environment(\.imageLoader) private var loader
+
     private let columnCount = 2
+    private let prefetchCount = 10
     private let spacing: CGFloat = 12
 
     var body: some View {
@@ -49,6 +52,14 @@ struct PhotoGrid: View {
         }
         .buttonStyle(.plain)
         .task { await feed.loadMoreIfNeeded(after: photo) }
+        .onAppear { prefetchThumbnails(after: photo) }
+    }
+
+    /// Photos are placed in feed order, so the next ones are about to scroll in.
+    private func prefetchThumbnails(after photo: Photo) {
+        guard let index = feed.photos.firstIndex(where: { $0.id == photo.id }) else { return }
+        let upcoming = feed.photos.dropFirst(index + 1).prefix(prefetchCount)
+        loader.prefetch(upcoming.map(\.urls.thumb))
     }
 
     /// Each photo goes to the currently shortest column. Heights only depend on aspect ratios,

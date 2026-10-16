@@ -98,5 +98,41 @@ extension Stubbed {
             #expect(StubURLProtocol.cancelledCount == 1)
             #expect(StubURLProtocol.requestCount == 1)
         }
+
+        @Test func prefetchedImageIsCachedAndNotDownloadedAgain() async throws {
+            let url = try #require(URL(string: "https://images.test/a.jpg"))
+            let loader = ImageLoader(session: StubURLProtocol.stub { _ in .image() })
+
+            loader.prefetch([url])
+            let image = try await loader.image(for: url)
+
+            #expect(StubURLProtocol.requestCount == 1)
+            #expect(loader.cachedImage(for: url) === image)
+        }
+
+        @Test func prefetchSkipsImagesAlreadyInMemory() async throws {
+            let url = try #require(URL(string: "https://images.test/a.jpg"))
+            let loader = ImageLoader(session: StubURLProtocol.stub { _ in .image() })
+            _ = try await loader.image(for: url)
+
+            loader.prefetch([url])
+            try await Task.sleep(for: .milliseconds(100))
+
+            #expect(StubURLProtocol.requestCount == 1)
+        }
+
+        @Test func cancellingAViewDoesNotCancelAPrefetch() async throws {
+            let url = try #require(URL(string: "https://images.test/a.jpg"))
+            let loader = ImageLoader(session: StubURLProtocol.stub { _ in .init(neverCompletes: true) })
+
+            loader.prefetch([url])
+            let waiter = Task { try await loader.image(for: url) }
+            while StubURLProtocol.requestCount == 0 { await Task.yield() }
+            waiter.cancel()
+            try await Task.sleep(for: .milliseconds(100))
+
+            #expect(StubURLProtocol.cancelledCount == 0)
+            #expect(StubURLProtocol.requestCount == 1)
+        }
     }
 }

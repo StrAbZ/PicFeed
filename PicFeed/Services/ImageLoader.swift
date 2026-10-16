@@ -46,6 +46,14 @@ final class ImageLoader {
         }
     }
 
+    /// Starts downloading images nobody is waiting for yet. Nothing waits on them, so no view
+    /// scrolling away can cancel them; they land in the cache for when the cell appears.
+    func prefetch(_ urls: [URL]) {
+        for url in urls where cachedImage(for: url) == nil {
+            Task { _ = try? await image(for: url) }
+        }
+    }
+
     /// A waiter was cancelled. The download is cancelled with its last waiter, so scrolling
     /// past a cell stops its download, unless another cell (or a prefetch) still wants it.
     private func leave(_ url: URL, _ task: Task<UIImage, Error>) {
