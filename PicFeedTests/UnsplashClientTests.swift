@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import PicFeed
 
@@ -54,6 +55,90 @@ extension Stubbed {
         @Test func otherFailuresCarryTheStatusCode() async {
             let session = StubURLProtocol.stub { _ in .init(statusCode: 500) }
             let client = UnsplashClient(accessKey: "test", session: session)
+
+            await #expect {
+                try await client.photos(page: 1)
+            } throws: { error in
+                guard case UnsplashError.http(statusCode: 500) = error else { return false }
+                return true
+            }
+        }
+    }
+}
+
+extension Stubbed {
+    @Suite struct UnsplashClientSavedPages {
+        private func client(_ session: URLSession) -> UnsplashClient {
+            UnsplashClient(accessKey: "test",
+                           session: session,
+                           cache: URLCache(memoryCapacity: 1_000_000, diskCapacity: 0))
+        }
+
+        @Test func offlineServesThePageThatWasLoadedBefore() async throws {
+            let client = client(StubURLProtocol.stub { _ in
+                StubURLProtocol.requestCount == 1 ? .photos(ids: ["a", "b"]) : .init(failure: .notConnectedToInternet)
+            })
+
+            let live = try await client.photos(page: 1)
+            let saved = try await client.photos(page: 1)
+
+            #expect(!live.isFromCache)
+            #expect(saved.isFromCache)
+            #expect(saved.photos.map(\.id) == ["a", "b"])
+        }
+
+        @Test func exhaustedQuotaServesTheSavedPage() async throws {
+            let client = client(StubURLProtocol.stub { _ in
+                StubURLProtocol.requestCount == 1
+                    ? .photos(ids: ["a"])
+                    : .init(statusCode: 403, headers: ["X-Ratelimit-Remaining": "0"])
+            })
+
+            _ = try await client.photos(page: 1)
+            let saved = try await client.photos(page: 1)
+
+            #expect(saved.isFromCache)
+            #expect(saved.photos.map(\.id) == ["a"])
+        }
+
+        @Test func onlineAlwaysPrefersTheNetwork() async throws {
+            let client = client(StubURLProtocol.stub { _ in
+                StubURLProtocol.requestCount == 1 ? .photos(ids: ["old"]) : .photos(ids: ["new"])
+            })
+
+            _ = try await client.photos(page: 1)
+            let page = try await client.photos(page: 1)
+
+            #expect(!page.isFromCache)
+            #expect(page.photos.map(\.id) == ["new"])
+        }
+
+        @Test func offlineWithNothingSavedThrowsTheConnectionError() async {
+            let client = client(StubURLProtocol.stub { _ in .init(failure: .notConnectedToInternet) })
+
+            await #expect {
+                try await client.photos(page: 1)
+            } throws: { error in
+                (error as? URLError)?.code == .notConnectedToInternet
+            }
+        }
+
+        @Test func eachPageAndQueryIsSavedSeparately() async throws {
+            let client = client(StubURLProtocol.stub { _ in
+                StubURLProtocol.requestCount == 1 ? .photos(ids: ["a"]) : .init(failure: .notConnectedToInternet)
+            })
+            _ = try await client.photos(page: 1)
+
+            await #expect(throws: URLError.self) {
+                try await client.photos(page: 2)
+            }
+        }
+
+        @Test func otherFailuresAreNotHiddenBySavedPages() async throws {
+            let client = client(StubURLProtocol.stub { _ in
+                StubURLProtocol.requestCount == 1 ? .photos(ids: ["a"]) : .init(statusCode: 500)
+            })
+            _ = try await client.photos(page: 1)
 
             await #expect {
                 try await client.photos(page: 1)

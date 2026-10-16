@@ -17,7 +17,7 @@ final class ImageLoader {
     private let memoryCache = NSCache<NSURL, UIImage>()
     private var inFlight: [URL: Download] = [:]
 
-    init(session: URLSession = .images, memoryLimit: Int = 64 * 1024 * 1024) {
+    init(session: URLSession = .images, memoryLimit: Int = 64_000_000) {
         self.session = session
         memoryCache.totalCostLimit = memoryLimit
     }
@@ -93,7 +93,7 @@ extension URLSession {
         let configuration = URLSessionConfiguration.default
         configuration.requestCachePolicy = .returnCacheDataElseLoad
         configuration.urlCache = URLCache(memoryCapacity: 0,
-                                          diskCapacity: 200 * 1024 * 1024,
+                                          diskCapacity: 200_000_000,
                                           directory: .cachesDirectory.appending(path: "Images"))
         return URLSession(configuration: configuration)
     }()

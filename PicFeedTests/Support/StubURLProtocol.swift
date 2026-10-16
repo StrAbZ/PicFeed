@@ -11,6 +11,8 @@ nonisolated final class StubURLProtocol: URLProtocol {
         var body = Data()
         /// The request stays open until it is cancelled.
         var neverCompletes = false
+        /// The request fails like a connection error, without any response.
+        var failure: URLError.Code?
     }
 
     nonisolated(unsafe) private static var handler: (@Sendable (URLRequest) -> Reply)?
@@ -33,6 +35,10 @@ nonisolated final class StubURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.requestCount += 1
+        if let failure = Self.handler?(request).failure {
+            client?.urlProtocol(self, didFailWithError: URLError(failure))
+            return
+        }
         guard let url = request.url,
               let reply = Self.handler?(request),
               let response = HTTPURLResponse(url: url,
