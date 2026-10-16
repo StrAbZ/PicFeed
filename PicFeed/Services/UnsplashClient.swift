@@ -72,7 +72,8 @@ nonisolated struct UnsplashClient: Sendable {
 
         guard let url = components.url else { throw UnsplashError.invalidResponse }
 
-        var request = URLRequest(url: url)
+        // The saved copy below is the only cache, so a response is either live or marked as saved.
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData)
         request.setValue("Client-ID \(accessKey)", forHTTPHeaderField: "Authorization")
         request.setValue("v1", forHTTPHeaderField: "Accept-Version")
 

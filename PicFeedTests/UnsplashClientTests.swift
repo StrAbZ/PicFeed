@@ -141,5 +141,13 @@ extension Stubbed {
                 return true
             }
         }
+
+        @Test func neverReadsFromTheSessionsOwnCache() async throws {
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in .photos(ids: ["a"]) })
+
+            _ = try await client.photos(page: 1)
+
+            #expect(StubURLProtocol.lastRequest?.cachePolicy == .reloadIgnoringLocalCacheData)
+        }
     }
 }

@@ -18,12 +18,14 @@ nonisolated final class StubURLProtocol: URLProtocol {
     nonisolated(unsafe) private static var handler: (@Sendable (URLRequest) -> Reply)?
     nonisolated(unsafe) private(set) static var requestCount = 0
     nonisolated(unsafe) private(set) static var cancelledCount = 0
+    nonisolated(unsafe) private(set) static var lastRequest: URLRequest?
     private var neverCompletes = false
 
     static func stub(_ handler: @escaping @Sendable (URLRequest) -> Reply) -> URLSession {
         self.handler = handler
         requestCount = 0
         cancelledCount = 0
+        lastRequest = nil
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]
         return URLSession(configuration: configuration)
@@ -35,6 +37,7 @@ nonisolated final class StubURLProtocol: URLProtocol {
 
     override func startLoading() {
         Self.requestCount += 1
+        Self.lastRequest = request
         if let failure = Self.handler?(request).failure {
             client?.urlProtocol(self, didFailWithError: URLError(failure))
             return
