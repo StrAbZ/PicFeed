@@ -1,9 +1,10 @@
+import Foundation
 import Testing
 @testable import PicFeed
 
 @MainActor
 struct PhotoFeedTests {
-    private let client = UnsplashClient(accessKey: "test", session: .fixtures)
+    private let client = UnsplashClient.test(session: .fixtures)
 
     private func recordedPage(_ page: Int) async throws -> [Photo] {
         try await client.photos(page: page).photos
@@ -54,6 +55,14 @@ struct PhotoFeedTests {
         #expect(feed.photos.count == 90)
     }
 
+    @Test func liveFeedDoesNotClaimToShowSavedPhotos() async {
+        let feed = PhotoFeed(client: client)
+
+        await feed.loadMore()
+
+        #expect(!feed.isShowingSavedPhotos)
+    }
+
     @Test func nothingLoadsWhenAPhotoFarFromTheEndAppears() async throws {
         let feed = PhotoFeed(client: client)
         await feed.loadMore()
@@ -80,7 +89,7 @@ extension Stubbed {
             let session = StubURLProtocol.stub { request in
                 request.page == 1 ? .photos(ids: ["a", "b"]) : .photos(ids: ["b", "c"])
             }
-            let feed = PhotoFeed(client: UnsplashClient(accessKey: "test", session: session))
+            let feed = PhotoFeed(client: .test(session: session))
 
             await feed.loadMore()
             await feed.loadMore()
@@ -92,7 +101,7 @@ extension Stubbed {
             let session = StubURLProtocol.stub { request in
                 request.page == 1 ? .photos(ids: ["a", "b"]) : .init(statusCode: 500)
             }
-            let feed = PhotoFeed(client: UnsplashClient(accessKey: "test", session: session))
+            let feed = PhotoFeed(client: .test(session: session))
             await feed.loadMore()
             await feed.loadMore()
             #expect(feed.error != nil)
@@ -103,6 +112,26 @@ extension Stubbed {
 
             await feed.loadMore()
             #expect(StubURLProtocol.requestCount == 3)
+        }
+
+        @Test func savedPhotosAreFlaggedAndStayFlaggedWhenLaterPagesAreLive() async {
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { request in
+                StubURLProtocol.requestCount == 3
+                    ? .init(failure: .notConnectedToInternet)
+                    : .photos(ids: [request.page == 1 ? "a" : "b"])
+            })
+            let warmUp = PhotoFeed(client: client)
+            await warmUp.loadMore()
+            await warmUp.loadMore()
+            #expect(!warmUp.isShowingSavedPhotos)
+
+            let feed = PhotoFeed(client: client)
+            await feed.loadMore()
+            #expect(feed.isShowingSavedPhotos)
+
+            await feed.loadMore()
+            #expect(feed.photos.map(\.id) == ["a", "b"])
+            #expect(feed.isShowingSavedPhotos)
         }
     }
 }

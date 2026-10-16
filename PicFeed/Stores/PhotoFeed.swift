@@ -8,6 +8,7 @@ final class PhotoFeed: Identifiable {
     private(set) var photos: [Photo] = []
     private(set) var isLoading = false
     private(set) var hasMore = true
+    private(set) var isShowingSavedPhotos = false
     private(set) var error: Error?
 
     private let client: UnsplashClient
@@ -35,6 +36,7 @@ final class PhotoFeed: Identifiable {
                 try await client.photos(page: nextPage)
             }
             lastLoadedPage += 1
+            if page.isFromCache { isShowingSavedPhotos = true }
             photos += page.photos.filter { loadedIDs.insert($0.id).inserted }
             hasMore = page.totalPages.map { lastLoadedPage < $0 } ?? !page.photos.isEmpty
         } catch {

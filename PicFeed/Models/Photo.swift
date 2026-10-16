@@ -31,7 +31,9 @@ nonisolated struct Photo: Identifiable, Hashable, Sendable, Decodable {
 }
 
 /// One page of results. `totalPages` is only known for search.
+/// `isFromCache` is set when the network failed and a saved copy was served instead.
 nonisolated struct PhotoPage: Sendable {
     let photos: [Photo]
     let totalPages: Int?
+    var isFromCache = false
 }

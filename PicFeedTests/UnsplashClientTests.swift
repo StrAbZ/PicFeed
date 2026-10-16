@@ -3,7 +3,7 @@ import Testing
 @testable import PicFeed
 
 struct UnsplashClientTests {
-    private let fixtures = UnsplashClient(accessKey: "test", session: .fixtures)
+    private let fixtures = UnsplashClient.test(session: .fixtures)
 
     @Test func decodesRecordedFeedPage() async throws {
         let page = try await fixtures.photos(page: 1)
@@ -25,7 +25,7 @@ struct UnsplashClientTests {
     }
 
     @Test func missingAccessKeyThrowsWithoutCallingTheNetwork() async {
-        let client = UnsplashClient(accessKey: "", session: .fixtures)
+        let client = UnsplashClient.test(accessKey: "", session: .fixtures)
 
         await #expect {
             try await client.photos(page: 1)
@@ -42,7 +42,7 @@ extension Stubbed {
             let session = StubURLProtocol.stub { _ in
                 .init(statusCode: 403, headers: ["X-Ratelimit-Remaining": "0"])
             }
-            let client = UnsplashClient(accessKey: "test", session: session)
+            let client = UnsplashClient.test(session: session)
 
             await #expect {
                 try await client.photos(page: 1)
@@ -54,7 +54,7 @@ extension Stubbed {
 
         @Test func otherFailuresCarryTheStatusCode() async {
             let session = StubURLProtocol.stub { _ in .init(statusCode: 500) }
-            let client = UnsplashClient(accessKey: "test", session: session)
+            let client = UnsplashClient.test(session: session)
 
             await #expect {
                 try await client.photos(page: 1)
@@ -68,14 +68,8 @@ extension Stubbed {
 
 extension Stubbed {
     @Suite struct UnsplashClientSavedPages {
-        private func client(_ session: URLSession) -> UnsplashClient {
-            UnsplashClient(accessKey: "test",
-                           session: session,
-                           cache: URLCache(memoryCapacity: 1_000_000, diskCapacity: 0))
-        }
-
         @Test func offlineServesThePageThatWasLoadedBefore() async throws {
-            let client = client(StubURLProtocol.stub { _ in
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in
                 StubURLProtocol.requestCount == 1 ? .photos(ids: ["a", "b"]) : .init(failure: .notConnectedToInternet)
             })
 
@@ -88,7 +82,7 @@ extension Stubbed {
         }
 
         @Test func exhaustedQuotaServesTheSavedPage() async throws {
-            let client = client(StubURLProtocol.stub { _ in
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in
                 StubURLProtocol.requestCount == 1
                     ? .photos(ids: ["a"])
                     : .init(statusCode: 403, headers: ["X-Ratelimit-Remaining": "0"])
@@ -102,7 +96,7 @@ extension Stubbed {
         }
 
         @Test func onlineAlwaysPrefersTheNetwork() async throws {
-            let client = client(StubURLProtocol.stub { _ in
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in
                 StubURLProtocol.requestCount == 1 ? .photos(ids: ["old"]) : .photos(ids: ["new"])
             })
 
@@ -114,7 +108,7 @@ extension Stubbed {
         }
 
         @Test func offlineWithNothingSavedThrowsTheConnectionError() async {
-            let client = client(StubURLProtocol.stub { _ in .init(failure: .notConnectedToInternet) })
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in .init(failure: .notConnectedToInternet) })
 
             await #expect {
                 try await client.photos(page: 1)
@@ -124,7 +118,7 @@ extension Stubbed {
         }
 
         @Test func eachPageAndQueryIsSavedSeparately() async throws {
-            let client = client(StubURLProtocol.stub { _ in
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in
                 StubURLProtocol.requestCount == 1 ? .photos(ids: ["a"]) : .init(failure: .notConnectedToInternet)
             })
             _ = try await client.photos(page: 1)
@@ -135,7 +129,7 @@ extension Stubbed {
         }
 
         @Test func otherFailuresAreNotHiddenBySavedPages() async throws {
-            let client = client(StubURLProtocol.stub { _ in
+            let client = UnsplashClient.test(session: StubURLProtocol.stub { _ in
                 StubURLProtocol.requestCount == 1 ? .photos(ids: ["a"]) : .init(statusCode: 500)
             })
             _ = try await client.photos(page: 1)
