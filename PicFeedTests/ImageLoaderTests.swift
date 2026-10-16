@@ -67,5 +67,36 @@ extension Stubbed {
                 try await loader.image(for: url)
             }
         }
+
+        @Test func cancellingTheOnlyWaiterCancelsTheDownload() async throws {
+            let url = try #require(URL(string: "https://images.test/a.jpg"))
+            let loader = ImageLoader(session: StubURLProtocol.stub { _ in .init(neverCompletes: true) })
+
+            let waiter = Task { try await loader.image(for: url) }
+            while StubURLProtocol.requestCount == 0 { await Task.yield() }
+            waiter.cancel()
+            _ = await waiter.result
+
+            #expect(StubURLProtocol.cancelledCount == 1)
+        }
+
+        @Test func downloadSurvivesUntilItsLastWaiterIsCancelled() async throws {
+            let url = try #require(URL(string: "https://images.test/a.jpg"))
+            let loader = ImageLoader(session: StubURLProtocol.stub { _ in .init(neverCompletes: true) })
+
+            let first = Task { try await loader.image(for: url) }
+            let second = Task { try await loader.image(for: url) }
+            while StubURLProtocol.requestCount == 0 { await Task.yield() }
+
+            first.cancel()
+            try await Task.sleep(for: .milliseconds(100))
+            #expect(StubURLProtocol.cancelledCount == 0)
+
+            second.cancel()
+            _ = await first.result
+            _ = await second.result
+            #expect(StubURLProtocol.cancelledCount == 1)
+            #expect(StubURLProtocol.requestCount == 1)
+        }
     }
 }

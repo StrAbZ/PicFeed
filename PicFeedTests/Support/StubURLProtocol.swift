@@ -9,14 +9,19 @@ nonisolated final class StubURLProtocol: URLProtocol {
         var statusCode = 200
         var headers: [String: String] = [:]
         var body = Data()
+        /// The request stays open until it is cancelled.
+        var neverCompletes = false
     }
 
     nonisolated(unsafe) private static var handler: (@Sendable (URLRequest) -> Reply)?
     nonisolated(unsafe) private(set) static var requestCount = 0
+    nonisolated(unsafe) private(set) static var cancelledCount = 0
+    private var neverCompletes = false
 
     static func stub(_ handler: @escaping @Sendable (URLRequest) -> Reply) -> URLSession {
         self.handler = handler
         requestCount = 0
+        cancelledCount = 0
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [StubURLProtocol.self]
         return URLSession(configuration: configuration)
@@ -38,12 +43,18 @@ nonisolated final class StubURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
+        if reply.neverCompletes {
+            neverCompletes = true
+            return
+        }
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: reply.body)
         client?.urlProtocolDidFinishLoading(self)
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        if neverCompletes { Self.cancelledCount += 1 }
+    }
 }
 
 /// Parent of every suite that uses `StubURLProtocol`: nested suites inherit `.serialized`.
