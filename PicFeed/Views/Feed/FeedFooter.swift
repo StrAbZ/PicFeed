@@ -5,11 +5,6 @@ struct FeedFooter: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if feed.isShowingSavedPhotos {
-                Text("Showing saved photos")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
             status
         }
         .padding()

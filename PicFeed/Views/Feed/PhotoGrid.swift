@@ -37,6 +37,7 @@ struct PhotoGrid: View {
         .task {
             if feed.photos.isEmpty { await feed.loadMore() }
         }
+        .overlay(alignment: .bottom) { SavedPhotosLabel(feed: feed) }
     }
 
     private func cell(for photo: Photo) -> some View {
